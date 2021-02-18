@@ -1,0 +1,10 @@
+# Deprecated
+deprecated/*
+
+# External sources
+deps/*
+res/lab/*
+
+# Building directories
+cmake-build-*
+build

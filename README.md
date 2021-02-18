@@ -117,6 +117,7 @@ More effects
 Cocoa supports many interesting and beautiful visual effects. They may cause some performance
 problems while they can improve the appearance of your application.
 
+### KaleidoscopicText Widget
 For text rendering, **Kaleidoscopic Text Description Language** or **KTDL** can be used.
 KTDL is a markup language that focuses on the display and layout of text.
 KTDL allows the user to specify a series of attributes for a text that will be applied
@@ -153,3 +154,10 @@ The following example uses KTDL to display the corresponding Hiragana on Japanes
 [!ftn]
 </pre>
 
+### Animation Widget
+Cocoa can load a Lottie JSON file for playing animations. Lottie files can be exported by
+*Adobe After Effect* or other similar tools.
+
+### Cubism Live2D Widget
+
+### Drawable Widget

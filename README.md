@@ -141,7 +141,7 @@ Following chart shows some useful attributes in KTDL.
 | [underline]                      | [ul]             | Render underline |
 | [strikeout]                      | [sto]            | Render strikeout |
 
-The following example uses KTDL to display the corresponding Katakana on Japanese Kanji characters.
+The following example uses KTDL to display the corresponding Hiragana on Japanese Kanji characters.
 <pre style="font-family: Consolas, sans-serif; font-size: 14px">
 [ftsz 15]
 [trl みらい]未来[!trl]の[trl まえ]前[!trl]にすくむ[trl てあし]手足[!trl]は[n!]

@@ -14,102 +14,14 @@ Architecture
 Cocoa consists of different modules:
 * **Core** provides basic functions for other parts.
 * **Ciallo** is a powerful and hardware-accelerated 2D rendering engine based on Skia.
-* **Komorebi** parses XML and CSS file to a DOM tree, and runs Javascript.
+* **Komorebi** implements many widget in C++, and runs Javascript.
 * **MaidCafe** implements a "standard library" for Javascript. It allows Javascript
-  to read/write files, access network, play audio and so on.
+  to read/write files, access network, play audio and so on. It compatible with Node.js.
 * **Reactor** is a JIT compiler based on LLVM.
 
-There are also some standalone tools that help you develop with Cocoa:
-* **Inspector** can load XML and CSS file then analyze the layout and style information.
-* **Viewer** can analyze XML and Javascript file dynamically.
-
-XML Syntax
-----------
-An XML file specifies the what should be drawn. Here's an "Hello World" example:
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<interface>
-    <property name="signature" type="string">org.CocoaProject.Layout</property>
-    <widget class="Window">
-        <property name="width" type="integer">400</property>
-        <property name="height" type="integer">400</property>
-        <property name="title" type="string">Hello World</property>
-        <widget class="TextLabel" id="dialog-box">
-            <property name="content" type="string">Hello, World!</property>
-        </widget>
-    </widget>
-</interface>
-```
-
-A simple visual novel interface:
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<interface>
-    <property name="signature" type="string">org.CocoaProject.Layout</property>
-    <property name="stylesheet" type="file">res/visual_novel_example.css</property>
-    <widget class="Window">
-        <property name="width" type="integer">1280</property>
-        <property name="height" type="integer">720</property>
-        <property name="title" type="string">Cocoa Visual Novel Sample</property>
-        <property name="icon" type="file">res/icon/visual_novel_sample.jpg</property>
-        <emit signal="window-close" event="WindowCloseEvent"/>
-
-        <widget class="ImageFrame" id="background-image"/>
-        <widget class="ImageFrame" id="character-stand-image"/>
-        <widget class="TextLabel" id="chapter-label"/>
-        <widget class="Container" id="bottom-container">
-            <widget class="TextLabel" id="character-name-label"/>
-            <widget class="ImageFrame" id="character-face-image"/>
-            <widget class="KaleidoscopicText" id="dialog-content">
-                <property name="KTDLSupport" type="boolean">True</property>
-            </widget>
-            <widget class="Container" id="dialog-buttons">
-                <widget class="Button" id="save-button">
-                    <property name="icon" type="file">res/icon/save_button.jpg</property>
-                    <property name="text" type="string">Save</property>
-                    <emit signal="save-button-clicked" event="ClickEvent"/>
-                </widget>
-                <widget class="Button" id="load-button">
-                    <property name="icon" type="file">res/icon/load_button.jpg</property>
-                    <property name="text" type="string">Load</property>
-                    <emit signal="load-button-clicked" event="ClickEvent"/>
-                </widget>
-                <widget class="Button" id="auto-button">
-                    <property name="icon" type="file">res/icon/auto_button.jpg</property>
-                    <property name="text" type="string">Auto</property>
-                    <emit signal="save-button-clicked" event="ClickEvent"/>
-                </widget>
-                <widget class="Button" id="settings-button">
-                    <property name="icon" type="file">res/icon/settings_button.jpg</property>
-                    <property name="text" type="string">Settings</property>
-                    <emit signal="save-button-clicked" event="ClickEvent"/>
-                </widget>
-                <widget class="Button" id="exit-button">
-                    <property name="icon" type="file">res/icon/exit_button.jpg</property>
-                    <property name="text" type="string">Exit</property>
-                    <emit signal="exit-button-clicked" event="ClickEvent"/>
-                </widget>
-            </widget>
-        </widget>
-    </widget>
-</interface>
-```
-See *docs/* directory for more detailed documentations.
-
-Javascript and MaidCafe
+Javascript in 
 -----------------------
-Cocoa's Javascript engine is based on Google's V8. But MaidCafe provides many powerful function
-like Node.js. It can manipulate DOM tree and its styles.
-Here's a simple example by using MaidCafe.
-```javascript
-try {
-    let scenario = MaidCafe.open("scenario.txt").read();
-    let widget = MaidCafe.document.getWidgetById("dialog-box");
-    widget.content = scenario.toUtf8String();
-} catch (e) {
-    MaidCafe.print(e);
-}
-```
+Cocoa's Javascript engine is totally compatible with Node.js.
 See *docs/* directory for more detailed documentations.
 
 Animations
@@ -122,13 +34,9 @@ Komorebi Extensions
 Cocoa supports many interesting and beautiful visual effects. They're provided as extensions of
 **Komorebi**.
 
-To load an extension in XML file:
-```xml
-<?xml version="1.0" encoding="UTF-8" ?>
-<interface>
-    <extension>CubismLive2DWidget</extension>
-    <!-- Something else... -->
-</interface>
+To load an extension in Javascript:
+```javascript
+let live2d = window.require("CubismLive2DWidget");
 ```
 
 ### KaleidoscopicText Widget
@@ -169,5 +77,4 @@ The following example uses KTDL to display the corresponding Hiragana on Japanes
 </pre>
 
 ### Cubism Live2D Widget
-
-### Drawable Widget
+TODO: Complete this.

@@ -95,6 +95,7 @@ void xcbRender()
 
     XCBWindow window(nullptr, WIDTH, HEIGHT);
     window.createWindow();
+    window.setWindowTitle("Ciallo Test");
 
     RenderNode *renderNode = window.GContext()->createRenderNode("#front",
                                                                  800, 600, 50, 20, 1);

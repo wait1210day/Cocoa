@@ -252,7 +252,15 @@ void XCBWindow::onWindowExpose()
 
 void XCBWindow::onSetWindowTitle(const std::string& name)
 {
-    // TODO: Set window title
+    xcb_change_property(fConnection,
+                        XCB_PROP_MODE_REPLACE,
+                        fWindow,
+                        XCB_ATOM_WM_NAME,
+                        XCB_ATOM_STRING,
+                        8,
+                        name.length(),
+                        name.c_str());
+    xcb_flush(fConnection);
 }
 
 CIALLO_END_NS

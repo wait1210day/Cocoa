@@ -5,7 +5,7 @@ Cocoa: 2D Rendering Engine
 Introduction
 ------------
 Cocoa is a 2D rendering engine written in C++. It provides a simple and quick way to create
-your own 2D interface by using CSS, XML and Javascript (Typescript is optional).
+your own 2D interface by using Javascript (Typescript is optional).
 
 Cocoa can be used in many situations such as game, user interface or something else.
 
@@ -19,7 +19,7 @@ Cocoa consists of different modules:
   to read/write files, access network, play audio and so on. It compatible with Node.js.
 * **Reactor** is a JIT compiler based on LLVM.
 
-Javascript in 
+Javascript in Cocoa
 -----------------------
 Cocoa's Javascript engine is totally compatible with Node.js.
 See *docs/* directory for more detailed documentations.

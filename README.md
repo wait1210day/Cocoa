@@ -112,10 +112,24 @@ try {
 ```
 See *docs/* directory for more detailed documentations.
 
-More effects
-------------
-Cocoa supports many interesting and beautiful visual effects. They may cause some performance
-problems while they can improve the appearance of your application.
+Animations
+----------
+Cocoa can load a Lottie JSON file for playing animations. Lottie files can be exported by
+*Adobe After Effect* or other similar tools.
+
+Komorebi Extensions
+-------------------
+Cocoa supports many interesting and beautiful visual effects. They're provided as extensions of
+**Komorebi**.
+
+To load an extension in XML file:
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<interface>
+    <extension>CubismLive2DWidget</extension>
+    <!-- Something else... -->
+</interface>
+```
 
 ### KaleidoscopicText Widget
 For text rendering, **Kaleidoscopic Text Description Language** or **KTDL** can be used.
@@ -153,10 +167,6 @@ The following example uses KTDL to display the corresponding Hiragana on Japanes
 あなたの[trl かたに]肩[!trl]に　[trl ゆれ]揺れ[!trl]てた[trl こもれび]木漏れ日[!trl][n!]
 [!ftn]
 </pre>
-
-### Animation Widget
-Cocoa can load a Lottie JSON file for playing animations. Lottie files can be exported by
-*Adobe After Effect* or other similar tools.
 
 ### Cubism Live2D Widget
 

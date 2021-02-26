@@ -2,27 +2,21 @@
 
 #include <xcb/xcb.h>
 
-#include "core/Journal.h"
-#include "core/Exception.h"
-#include "core/ObjectHolder.h"
-#include "core/Configurator.h"
-#include "core/IODispatcher.h"
+#include "Core/Utils.h"
+#include "Core/Journal.h"
+#include "Core/Exception.h"
+#include "Core/Configurator.h"
+#include "Core/MeasuredTable.h"
 
-#include "ciallo/DDR/GrXcbPlatform.h"
-#include "ciallo/DIR/PaintNode.h"
-#include "ciallo/GraphicsContext.h"
-
-#include "komorebi/css/CSSStylesheet.h"
-#include "komorebi/css/CSSSelectionContext.h"
-#include "komorebi/css/CSSCalculator.h"
-#include "komorebi/KTDLParser.h"
+#include "Ciallo/DDR/GrXcbPlatform.h"
+#include "Ciallo/DIR/PaintNode.h"
+#include "Ciallo/GraphicsContext.h"
+#include "Ciallo/XCBWindow.h"
 
 #if TEST_CIALLO
 #include "include/core/SkPicture.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkPaint.h"
-#include "include/core/SkPictureRecorder.h"
-#include "include/core/SkPixmap.h"
 #include "include/codec/SkCodec.h"
 #include "include/effects/SkDiscretePathEffect.h"
 #include "include/effects/SkGradientShader.h"
@@ -38,24 +32,8 @@
 namespace cocoa
 {
 
-void DumpPropertiesTree()
-{
-    StringVector sv;
-    GOM->dumpPropertiesTree(sv);
-
-    logOut(LOG_DEBUG) << "Properties:" << logEndl;
-    for (auto& str : sv)
-        logOut(LOG_DEBUG) << str << logEndl;
-}
-
 constexpr uint32_t WIDTH = 1270;
 constexpr uint32_t HEIGHT = 720;
-
-sk_sp<SkImage> readTextureImage(const std::string& file)
-{
-    sk_sp<SkData> data = SkData::MakeFromFileName(file.c_str());
-    return SkImage::MakeFromEncoded(data);
-}
 
 void draw(ciallo::PaintNode *node, const sk_sp<SkShader>& shader)
 {
@@ -111,218 +89,122 @@ void displayFps()
     cnt++;
 }
 
-void render()
+void xcbRender()
 {
-    int screenp;
-    ::xcb_connection_t *connection = ::xcb_connect(nullptr, &screenp);
-    const ::xcb_setup_t *setup = ::xcb_get_setup(connection);
-    ::xcb_screen_iterator_t screen_iterator = ::xcb_setup_roots_iterator(setup);
-    for (int i = screenp; i > 0; i--)
-        ::xcb_screen_next(&screen_iterator);
+    using namespace ciallo;
 
-    ::xcb_screen_t *screen = screen_iterator.data;
+    XCBWindow window(nullptr, WIDTH, HEIGHT);
+    window.createWindow();
 
-    uint32_t mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    uint32_t mask_values[2] = {
-        screen->white_pixel,
-        XCB_EVENT_MASK_EXPOSURE
-        | XCB_EVENT_MASK_POINTER_MOTION
-    };
+    RenderNode *renderNode = window.GContext()->createRenderNode("#front",
+                                                                 800, 600, 50, 20, 1);
 
-    ::xcb_window_t window = ::xcb_generate_id(connection);
-    ::xcb_create_window(connection,
-                        XCB_COPY_FROM_PARENT,
-                        window,
-                        screen->root,
-                        0, 0,
-                        WIDTH, HEIGHT,
-                        10,
-                        XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                        screen->root_visual,
-                        mask,
-                        mask_values);
+    PaintNode *paintNode = PaintNode::MakeFromParent(renderNode, 800, 600, 0, 0);
+    renderNode->asRenderLayer()->setVisibility(true);
 
-    ::xcb_map_window(connection, window);
-    ::xcb_flush(connection);
-
-
-    xcb_intern_atom_reply_t *deleteReply = xcb_intern_atom_reply(connection,
-                                                                 xcb_intern_atom(connection,
-                                                                                 0, 16,
-                                                                                 "WM_DELETE_WINDOW"),
-                                                                 nullptr);
-    xcb_intern_atom_reply_t *protocolReply = xcb_intern_atom_reply(connection,
-                                                                   xcb_intern_atom(connection,
-                                                                                   1, 12,
-                                                                                   "WM_PROTOCOLS"),
-                                                                   nullptr);
-    xcb_atom_t deleteWindowAtom = deleteReply->atom;
-    xcb_atom_t protocolAtom = protocolReply->atom;
-    std::free(deleteReply);
-    std::free(protocolReply);
-
-    xcb_change_property_checked(connection,
-                                XCB_PROP_MODE_REPLACE,
-                                window,
-                                protocolAtom,
-                                XCB_ATOM_ATOM, 32, 1,
-                                &deleteWindowAtom);
-
-    ::xcb_expose_event_t xcbExposeEvent{
-            .response_type = XCB_EXPOSE,
-            .sequence = 0,
-            .window = window,
-            .x = 0,
-            .y = 0,
-            .width = WIDTH,
-            .height = HEIGHT,
-            .count = 1
-    };
-
-    ciallo::GrPlatformOptions options{
-        .use_gpu_accel = false,
-        .use_opencl_accel = true,
-        .use_strict_accel = false,
-        .vulkan_debug = false
-    };
-
+    while (!window.isClosed())
     {
-        using namespace ciallo;
-        GraphicsContext ctx(GrXcbPlatform::MakeFromXcbWindow(connection, window,
-                                                             screenp, options));
+        draw(paintNode, nullptr);
+        window.GContext()->emitCmdRenderNodeUpdate(renderNode)->wait();
+        window.update();
+    }
+}
 
-        RenderNode *renderNode = ctx.createRenderNode("#front",
-                                                      800, 600, 50, 20, -1);
-        RenderNode *background = ctx.createRenderNode("#background",
-                                                      ctx.asNode()->asCompositor()->width(),
-                                                      ctx.asNode()->asCompositor()->height(),
-                                                      0, 0, -2);
-        PaintNode *paintNode = PaintNode::MakeFromParent(renderNode, 800, 600, 0, 0);
+Configurator::State Initialize(int argc, char const **argv)
+{
+    PropertyTree::New();
+    PropertyTree *prop = PropertyTree::Instance();
 
-        renderNode->asRenderLayer()->setVisibility(true);
-        background->asRenderLayer()->setVisibility(true);
-        background->asRenderLayer()->drawImageFile("/home/sora/Pictures/Library/ACG/灵梦.jpg");
+    Configurator conf;
+    Configurator::State state = conf.parse(argc, argv);
+    if (state == Configurator::State::kShouldExitNormally ||
+        state == Configurator::State::kError)
+        return state;
 
-        ctx.emitCmdRenderNodeUpdate(background);
+    std::string level = prop->asNode("/runtime/journal/level")
+                            ->cast<PropertyTreeDataNode>()->extract<std::string>();
 
-        ::xcb_generic_event_t *evt;
-        while ((evt = ::xcb_wait_for_event(connection)))
-        {
-            uint8_t type = evt->response_type & ~0x80;
-            if (type == XCB_EXPOSE)
-            {
-                draw(paintNode, nullptr);
-
-                ctx.emitCmdRenderNodeUpdate(renderNode);
-                ctx.emitCmdPresent()->wait();
-
-                ctx.asPlatform()->expose();
-
-                displayFps();
-
-                ::xcb_send_event(connection, true, window,
-                                 XCB_EVENT_MASK_EXPOSURE, reinterpret_cast<char const*>(&xcbExposeEvent));
-                ::xcb_flush(connection);
-            }
-            else if (type == XCB_CLIENT_MESSAGE)
-            {
-                auto *clientMessageEvent = reinterpret_cast<xcb_client_message_event_t*>(evt);
-                if (clientMessageEvent->data.data32[0] == deleteWindowAtom)
-                {
-                   std::cout << "Window closed" << std::endl;
-                   std::free(evt);
-                   break;
-                }
-            }
-            std::free(evt);
-        }
+    int filter;
+    if (level == "debug")
+        filter = LogLevel::LOG_LEVEL_DEBUG;
+    else if (level == "normal")
+        filter = LogLevel::LOG_LEVEL_NORMAL;
+    else if (level == "quiet")
+        filter = LogLevel::LOG_LEVEL_QUIET;
+    else if (level == "silent")
+        filter = LogLevel::LOG_LEVEL_SILENT;
+    else if (level == "disabled")
+        filter = LogLevel::LOG_LEVEL_DISABLED;
+    else
+    {
+        throw RuntimeException::Builder(__FUNCTION__)
+                .append("Unknown log level: ")
+                .append(level)
+                .make<RuntimeException>();
     }
 
-    ::xcb_destroy_window(connection, window);
-    ::xcb_disconnect(connection);
+    bool rainbow = prop->asNode("/runtime/journal/textShader")
+            ->cast<PropertyTreeDataNode>()->value().extract<bool>();
+
+    std::string redirect = prop->asNode("/runtime/journal/stdout")
+                               ->cast<PropertyTreeDataNode>()->value().extract<std::string>();
+    if (redirect == "<stdout>")
+        Journal::New(STDOUT_FILENO, filter, rainbow);
+    else if (redirect == "<stderr>")
+        Journal::New(STDERR_FILENO, filter, rainbow);
+    else
+        Journal::New(redirect.c_str(), filter, rainbow);
+
+    return Configurator::State::kSuccessful;
 }
 
-void MainProcessEntry(int argc, char const **argv)
+void Finalize()
 {
-    GOM->addObject(new Config(GOM));
-    Config::instance()->parseFromCLI(argc, argv);
-    if (Config::instance()->needExit())
-        return;
-
-    if (!GOM->hasPropertyOrDirectory("/config/JSONConfigFile"))
-        throw std::runtime_error("You must specify a configuration file");
-
-    Config::instance()->parseFromJSON(GOM->getPropertyString("/config/JSONConfigFile"));
-    Journal::InitializeJournal();
-
-    GOM->addObject(new IODispatcher());
-
-    // render();
-#if 0
-    auto stylesheet = kmr::CSSStylesheet::Make(kmr::CSSStylesheet::Level::kCSSLevel_Default,
-                                               kmr::CSSStylesheet::Charset::kUtf8,
-                                               "cocoa://test/css/stylesheet/sample.css",
-                                               "Sample",
-                                               std::make_unique<kmr::CSSStylesheetDefaultEnvironment>());
-    std::string css = "h1 { color: red }\n"
-                      "h4 { color: #321; }\n"
-                      "div { background: url(cocoa://backgrounds/user/chino.bg); }\n";
-
-    stylesheet->appendData(css);
-    stylesheet->parse();
-
-    auto selectCtx = kmr::CSSSelectionContext::Make();
-    selectCtx->appendSheet(stylesheet);
-#endif
-    std::string data = ".dialog-box {\n"
-                       "    background-color: #66ccff\n"
-                       "    position: relative;\n"
-                       "}\n";
-
-    auto stylesheet = kmr::CSSStylesheet::Make(kmr::CSSStylesheet::Level::kCSSLevel_3,
-                                               kmr::CSSStylesheet::Charset::kUtf8,
-                                               "file:///",
-                                               "test stylesheet",
-                                               std::make_unique<kmr::CSSStylesheetDefaultEnvironment>());
-    auto selectionContext = kmr::CSSSelectionContext::Make();
-    kmr::CSSCalculator calculator;
-    kmr::CSSDOMVisitor *visitor = nullptr;
-
-    stylesheet->appendData(data);
-    selectionContext->appendSheet(stylesheet);
-
-    calculator.elevate(selectionContext, visitor);
+    Journal::Delete();
+    PropertyTree::Delete();
 }
 
-int NamespacedMain(int argc, char const **argv)
+void Run()
 {
-    // ProfilerStart("cocoa.prof");
-    OCInitialize();
+    log_write(LOG_DEBUG) << "Content of property tree:" << log_endl;
+    utils::DumpPropertyTree(PropertyTree::Instance()->asNode("/"), [](const std::string& str) -> void {
+        log_write(LOG_DEBUG) << str << log_endl;
+    });
 
+    xcbRender();
+}
+
+int Main(int argc, char const **argv)
+{
     try
     {
-        MainProcessEntry(argc, argv);
+        Configurator::State state = Initialize(argc, argv);
+        if (state == Configurator::State::kError)
+            return 1;
+        if (state == Configurator::State::kShouldExitNormally)
+            return 0;
+
+        Run();
+        Finalize();
     }
-    ARTEXCEPT_CATCH(ARTException)
+    catch (const RuntimeException& e)
     {
-        if (Journal::instance())
+        if (Journal::Instance())
         {
-            __except->dumpError();
-            __except->backtrace();
+            bool color = PropertyTree::Instance()->asNode("/runtime/journal/exceptionTextShader")
+                            ->cast<PropertyTreeDataNode>()->extract<bool>();
+            utils::DumpRuntimeException(e, color, [](const std::string& str) -> void {
+                log_write(LOG_EXCEPTION) << str << log_endl;
+            });
         }
         else
-            std::cerr << "Error: " << __except->who() << ": " << __except->what() << std::endl;
-        ARTEXCEPT_CATCH_END
+        {
+            utils::DumpRuntimeException(e, false, [](const std::string& str) -> void {
+                std::cerr << str << std::endl;
+            });
+        }
     }
-    /*
-    catch (std::exception& except)
-    {
-        std::cerr << "Error: " << except.what() << std::endl;
-    }
-    */
 
-    OCFinalize();
-    // ProfilerStop();
     return 0;
 }
 
@@ -330,5 +212,5 @@ int NamespacedMain(int argc, char const **argv)
 
 int main(int argc, char const *argv[])
 {
-    return cocoa::NamespacedMain(argc, argv);
+    return cocoa::Main(argc, argv);
 }
